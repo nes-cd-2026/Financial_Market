@@ -1,8 +1,11 @@
 version: '3.8'
 
 services:
+
   db:
     image: postgres:15
+    container_name: finance_db
+    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -12,10 +15,16 @@ services:
 
   app:
     build: .
+    container_name: finance_app
     depends_on:
       - db
     ports:
       - "8501:8501"
     volumes:
       - .:/app
-    command: streamlit run src/app.py
+    command: >
+      sh -c "
+      sleep 10 &&
+      python data/generate_data.py &&
+      streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0
+      "
