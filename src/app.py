@@ -1,144 +1,66 @@
 import streamlit as st
+import requests
 import pandas as pd
-import numpy as np
-from sqlalchemy import create_engine, text
-import time
 
-# conexão
-engine = create_engine(
-    "postgresql://user:password@db:5432/finance"
+from model.predictor import train_model
+
+st.title("Mercado Financeiro Preditivo")
+
+ativo = st.selectbox(
+    "Ativo",
+    ["AAPL","GOOGL","TSLA"]
 )
 
-# esperar banco iniciar
-time.sleep(5)
-
-# criar tabelas
-with engine.connect() as conn:
-
-    conn.execute(text("""
-        CREATE TABLE IF NOT EXISTS assets (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL
-        );
-    """))
-
-    conn.execute(text("""
-        CREATE TABLE IF NOT EXISTS prices (
-            id SERIAL PRIMARY KEY,
-            asset_id INT REFERENCES assets(id),
-            date DATE NOT NULL,
-            price FLOAT NOT NULL
-        );
-    """))
-
-    conn.commit()
-
-# verificar se já existem dados
-check_query = """
-SELECT COUNT(*) FROM assets
-"""
-
-with engine.connect() as conn:
-    result = conn.execute(text(check_query))
-    count = result.scalar()
-
-# gerar dados automaticamente se vazio
-if count == 0:
-
-    np.random.seed(42)
-
-    assets = ["AAPL", "GOOGL", "TSLA"]
-
-    assets_df = pd.DataFrame({
-        "name": assets
-    })
-
-    dates = pd.date_range("2023-01-01", "2023-12-31")
-
-    price_data = []
-
-    for i, asset in enumerate(assets, start=1):
-
-        price = 100
-
-        for date in dates:
-
-            price *= np.random.normal(1.0005, 0.02)
-
-            price_data.append([
-                i,
-                date,
-                round(price, 2)
-            ])
-
-    prices_df = pd.DataFrame(
-        price_data,
-        columns=["asset_id", "date", "price"]
-    )
-
-    assets_df.to_sql(
-        "assets",
-        engine,
-        if_exists="append",
-        index=False
-    )
-
-    prices_df.to_sql(
-        "prices",
-        engine,
-        if_exists="append",
-        index=False
-    )
-
-# dashboard
-st.title("📈 Mercado Financeiro Simplificado")
-
-query = """
-SELECT a.name, p.date, p.price
-FROM prices p
-JOIN assets a ON p.asset_id = a.id
-"""
-
-df = pd.read_sql(query, engine)
-
-assets = df["name"].unique()
-
-asset = st.selectbox(
-    "Escolha o ativo",
-    assets
+modelo = st.selectbox(
+    "Modelo",
+    [
+        "Linear Regression",
+        "Random Forest"
+    ]
 )
 
-df_asset = df[df["name"] == asset].sort_values("date")
+dados = requests.get(
+    f"http://api:8000/dados?ativo={ativo}"
+).json()
 
-st.subheader("Preço ao longo do tempo")
+df = pd.DataFrame(dados)
+
+df["date"] = pd.to_datetime(df["date"])
+
+st.subheader("Série Histórica")
 
 st.line_chart(
-    df_asset.set_index("date")["price"]
+    df.set_index("date")["price"]
 )
 
-df_asset["return"] = df_asset["price"].pct_change()
-
-st.subheader("Retorno diário")
-
-st.line_chart(
-    df_asset.set_index("date")["return"]
+model,pred,mae,rmse,X_test,y_test = train_model(
+    df,
+    modelo
 )
 
-vol = df_asset["return"].std()
+resultado = pd.DataFrame({
+    "Real": y_test.values,
+    "Previsto": pred
+})
+
+st.subheader("Previsão")
+
+st.line_chart(resultado)
 
 st.metric(
-    "Volatilidade",
-    f"{vol:.4f}"
+    "MAE",
+    round(mae,2)
 )
 
-pivot = df.pivot(
-    index="date",
-    columns="name",
-    values="price"
+st.metric(
+    "RMSE",
+    round(rmse,2)
 )
 
-corr = pivot.pct_change().corr()
+resumo = requests.get(
+    f"http://api:8000/resumo?ativo={ativo}"
+).json()
 
-st.subheader("Correlação entre ativos")
+st.subheader("Resumo")
 
-st.dataframe(corr)
+st.json(resumo)
