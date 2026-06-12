@@ -1,29 +1,32 @@
-version: '3.8'
+version: "3.8"
 
 services:
 
   db:
     image: postgres:15
-    container_name: finance_db
-    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: finance
-    ports:
-      - "5432:5432"
 
-  app:
-    build: .
-    container_name: finance_app
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+
+    ports:
+      - "8000:8000"
+
     depends_on:
       - db
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+
     ports:
       - "8501:8501"
-    volumes:
-      - .:/app
-    command: >
-      sh -c "
-      python data/generate_data.py &&
-      streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0
-      "
+
+    depends_on:
+      - api
