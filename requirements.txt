@@ -4,3 +4,7 @@ sqlalchemy
 psycopg2-binary
 numpy
 plotly
+fastapi
+uvicorn
+requests
+scikit-learn
