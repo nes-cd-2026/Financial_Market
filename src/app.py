@@ -31,10 +31,19 @@ modelo = st.selectbox(
     ]
 )
 
-dados = requests.get(
+response = requests.get(
     f"http://api:8000/dados?ativo={ativo}"
-).json()
+)
 
+if response.status_code != 200:
+
+    st.error(response.text)
+
+    st.stop()
+
+dados = response.json()
+
+df = pd.DataFrame(dados)
 df = pd.DataFrame(dados)
 
 df["date"] = pd.to_datetime(df["date"])
