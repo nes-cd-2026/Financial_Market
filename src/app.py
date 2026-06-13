@@ -42,6 +42,14 @@ ativo = st.selectbox(
 
 )
 
+inicio = st.date_input(
+    "Data inicial"
+)
+
+fim = st.date_input(
+    "Data final"
+)
+
 modelo = st.selectbox(
 
     "Modelo",
