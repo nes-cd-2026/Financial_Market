@@ -92,15 +92,31 @@ data_min = df["date"].min().date()
 
 data_max = df["date"].max().date()
 
+datas_disponiveis = sorted(
+    df["date"].dt.date.unique()
+)
+
 inicio = st.date_input(
 
     "Data inicial",
 
-    value=data_min,
+    value=datas_disponiveis[0],
 
-    min_value=data_min,
+    min_value=datas_disponiveis[0],
 
-    max_value=data_max
+    max_value=datas_disponiveis[-1]
+
+)
+
+indice_inicio = datas_disponiveis.index(
+    inicio
+)
+
+indice_min_fim = min(
+
+    indice_inicio + 9,
+
+    len(datas_disponiveis)-1
 
 )
 
@@ -108,13 +124,14 @@ fim = st.date_input(
 
     "Data final",
 
-    value=data_max,
+    value=datas_disponiveis[-1],
 
-    min_value=inicio,
+    min_value=datas_disponiveis[indice_min_fim],
 
-    max_value=data_max
+    max_value=datas_disponiveis[-1]
 
 )
+
 # SEGUNDA CONSULTA
 
 response = requests.get(
