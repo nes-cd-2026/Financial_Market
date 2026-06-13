@@ -1,6 +1,3 @@
-import streamlit as st
-import requests
-import pandas as pd
 import sys
 import os
 
@@ -13,23 +10,53 @@ sys.path.append(
     )
 )
 
-from model.predictor import train_model
+import streamlit as st
+import requests
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
 from model.predictor import train_model
 
-st.title("Mercado Financeiro Preditivo")
+
+st.set_page_config(
+    page_title="Mercado Financeiro",
+    layout="wide"
+)
+
+st.title(
+    "📈 Mercado Financeiro — Previsão de Ativos"
+)
+
+# ESCOLHAS
 
 ativo = st.selectbox(
-    "Ativo",
-    ["AAPL","GOOGL","TSLA"]
+
+    "Variável a prever",
+
+    [
+        "AAPL",
+        "GOOGL",
+        "TSLA"
+    ]
+
 )
 
 modelo = st.selectbox(
+
     "Modelo",
+
     [
+
         "Linear Regression",
+
         "Random Forest"
+
     ]
+
 )
+
+# API
 
 response = requests.get(
     f"http://api:8000/dados?ativo={ativo}"
@@ -37,51 +64,238 @@ response = requests.get(
 
 if response.status_code != 200:
 
-    st.error(response.text)
+    st.error(
+        response.text
+    )
 
     st.stop()
 
 dados = response.json()
 
-df = pd.DataFrame(dados)
-df = pd.DataFrame(dados)
-
-df["date"] = pd.to_datetime(df["date"])
-
-st.subheader("Série Histórica")
-
-st.line_chart(
-    df.set_index("date")["price"]
+df = pd.DataFrame(
+    dados
 )
 
-model,pred,mae,rmse,X_test,y_test = train_model(
-    df,
+df["date"] = pd.to_datetime(
+    df["date"]
+)
+
+df = df.sort_values(
+    "date"
+)
+
+# CORTE TEMPORAL
+
+st.subheader(
+    "Configuração da Previsão"
+)
+
+t0 = st.slider(
+
+    "Corte temporal (t0)",
+
+    min_value=20,
+
+    max_value=len(df)-20,
+
+    value=int(
+        len(df)*0.8
+    )
+
+)
+
+# HORIZONTE
+
+horizonte = st.slider(
+
+    "Horizonte de previsão",
+
+    min_value=5,
+
+    max_value=min(
+        60,
+        len(df)-t0
+    ),
+
+    value=30
+
+)
+
+st.info(
+
+    f"""
+Treino:
+{df.iloc[0]["date"].date()}
+→
+{df.iloc[t0]["date"].date()}
+
+Previsão:
+{horizonte} dias
+"""
+
+)
+
+# DIVISÃO
+
+train = df.iloc[:t0]
+
+test = df.iloc[
+    t0:
+    t0+horizonte
+]
+
+# MODELO
+
+
+model,_,mae,rmse,_,_ = train_model(
+
+    train,
+
     modelo
+
 )
 
-resultado = pd.DataFrame({
-    "Real": y_test.values,
-    "Previsto": pred
-})
+future = np.arange(
 
-st.subheader("Previsão")
+    len(train),
 
-st.line_chart(resultado)
+    len(train)+len(test)
 
-st.metric(
-    "MAE",
-    round(mae,2)
+).reshape(
+    -1,
+    1
 )
 
-st.metric(
-    "RMSE",
-    round(rmse,2)
+pred = model.predict(
+    future
 )
+
+# INTERVALO CONFIANÇA
+
+desvio = np.std(
+    pred
+)
+
+inferior = pred-desvio
+
+superior = pred+desvio
+
+# PLOT
+
+st.subheader(
+    "Série Temporal"
+)
+
+fig = plt.figure(
+    figsize=(14,7)
+)
+
+plt.plot(
+
+    df["date"],
+
+    df["price"],
+
+    label="Preço Real"
+
+)
+
+plt.plot(
+
+    test["date"],
+
+    pred,
+
+    "--",
+
+    linewidth=3,
+
+    label="Previsão"
+
+)
+
+plt.fill_between(
+
+    test["date"],
+
+    inferior,
+
+    superior,
+
+    alpha=0.2
+
+)
+
+plt.axvline(
+
+    df.iloc[t0]["date"],
+
+    linestyle=":",
+
+    linewidth=2
+
+)
+
+plt.xlabel(
+    "Data"
+)
+
+plt.ylabel(
+    "Preço"
+)
+
+plt.legend()
+
+st.pyplot(
+    fig
+)
+
+# MÉTRICAS
+
+c1,c2 = st.columns(
+    2
+)
+
+with c1:
+
+    st.metric(
+
+        "MAE",
+
+        round(
+            mae,
+            2
+        )
+
+    )
+
+with c2:
+
+    st.metric(
+
+        "RMSE",
+
+        round(
+            rmse,
+            2
+        )
+
+    )
+
+# -----------------------
+# RESUMO
+# -----------------------
 
 resumo = requests.get(
+
     f"http://api:8000/resumo?ativo={ativo}"
+
 ).json()
 
-st.subheader("Resumo")
+st.subheader(
+    "Resumo Estatístico"
+)
 
-st.json(resumo)
+st.json(
+    resumo
+)
