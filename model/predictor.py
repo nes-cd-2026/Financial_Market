@@ -8,39 +8,66 @@ from sklearn.metrics import (
     root_mean_squared_error
 )
 
-def train_model(df, model_name):
 
-    X = np.arange(len(df)).reshape(-1,1)
+def train_model(
+    df,
+    model_name
+):
+
+    X = np.arange(
+        len(df)
+    ).reshape(
+        -1,
+        1
+    )
+
     y = df["price"]
 
-    split = int(len(df)*0.8)
-
-    X_train = X[:split]
-    X_test = X[split:]
-
-    y_train = y[:split]
-    y_test = y[split:]
-
     if model_name == "Linear Regression":
+
         model = LinearRegression()
+
     else:
+
         model = RandomForestRegressor(
+
             n_estimators=100,
+
             random_state=42
+
         )
 
-    model.fit(X_train,y_train)
+    model.fit(
+        X,
+        y
+    )
 
-    pred = model.predict(X_test)
+    pred = model.predict(
+        X
+    )
 
     mae = mean_absolute_error(
-        y_test,
+        y,
         pred
     )
 
     rmse = root_mean_squared_error(
-        y_test,
+        y,
         pred
     )
 
-    return model,pred,mae,rmse,X_test,y_test
+    return (
+
+        model,
+
+        pred,
+
+        mae,
+
+        rmse,
+
+        X,
+
+        y
+
+    )
