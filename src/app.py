@@ -67,7 +67,19 @@ modelo = st.selectbox(
 # API
 
 response = requests.get(
-    f"http://api:8000/dados?ativo={ativo}"
+
+    "http://api:8000/dados",
+
+    params={
+
+        "ativo": ativo,
+
+        "inicio": inicio,
+
+        "fim": fim
+
+    }
+
 )
 
 if response.status_code != 200:
