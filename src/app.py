@@ -161,51 +161,68 @@ st.subheader(
     "Configuração da Previsão"
 )
 
+min_t0 = 1
+
+max_t0 = max(
+    1,
+    len(df)-5
+)
+
+valor_padrao = min(
+    int(len(df)*0.8),
+    max_t0
+)
+
 t0 = st.slider(
 
     "Corte temporal (t0)",
 
-    min_value=20,
+    min_value=min_t0,
 
-    max_value=len(df)-20,
+    max_value=max_t0,
 
-    value=int(
-        len(df)*0.8
-    )
+    value=valor_padrao
 
 )
 
 # HORIZONTE
 
+max_horizonte = max(
+    1,
+    len(df)-t0
+)
+
 horizonte = st.slider(
 
     "Horizonte de previsão",
 
-    min_value=5,
+    min_value=1,
 
-    max_value=min(
-        60,
-        len(df)-t0
-    ),
+    max_value=max_horizonte,
 
-    value=30
+    value=min(
+        30,
+        max_horizonte
+    )
 
 )
 
-st.info(
+if len(df) > 1:
 
-    f"""
+    st.info(
+
+        f"""
 Treino:
 {df.iloc[0]["date"].date()}
 →
-{df.iloc[t0]["date"].date()}
+{df.iloc[min(t0, len(df)-1)]["date"].date()}
 
 Previsão:
 {horizonte} dias
 """
 
-)
-
+    )
+    
 # DIVISÃO
 
 train = df.iloc[:t0]
