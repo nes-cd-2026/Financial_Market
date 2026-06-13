@@ -9,17 +9,26 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: finance
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+ api:
 
-    ports:
-      - "8000:8000"
+   build:
+     context: .
+     dockerfile: Dockerfile.api
 
-    depends_on:
-      - db
+   depends_on:
+     - db
 
+   command: >
+     sh -c "
+     python data/generate_data.py &&
+     uvicorn api.main:app
+     --host 0.0.0.0
+     --port 8000
+     "
+
+   ports:
+     - "8000:8000"
+     
   dashboard:
     build:
       context: .
