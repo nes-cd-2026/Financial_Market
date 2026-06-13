@@ -42,14 +42,6 @@ ativo = st.selectbox(
 
 )
 
-inicio = st.date_input(
-    "Data inicial"
-)
-
-fim = st.date_input(
-    "Data final"
-)
-
 modelo = st.selectbox(
 
     "Modelo",
@@ -65,6 +57,55 @@ modelo = st.selectbox(
 )
 
 # API
+response = requests.get(
+
+    "http://api:8000/dados",
+
+    params={
+
+        "ativo": ativo
+
+    }
+
+)
+
+if response.status_code != 200:
+
+    st.error(
+        response.text
+    )
+
+    st.stop()
+
+dados = response.json()
+
+df = pd.DataFrame(
+    dados
+)
+
+df["date"] = pd.to_datetime(
+    df["date"]
+)
+
+# FILTRO PERÍODO
+
+inicio = st.date_input(
+
+    "Data inicial",
+
+    value=df["date"].min()
+
+)
+
+fim = st.date_input(
+
+    "Data final",
+
+    value=df["date"].max()
+
+)
+
+# SEGUNDA CONSULTA
 
 response = requests.get(
 
@@ -74,9 +115,9 @@ response = requests.get(
 
         "ativo": ativo,
 
-        "inicio": inicio,
+        "inicio": inicio.isoformat(),
 
-        "fim": fim
+        "fim": fim.isoformat()
 
     }
 
