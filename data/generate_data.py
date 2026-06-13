@@ -48,6 +48,8 @@ with engine.connect() as conn:
 
 assets = pd.DataFrame({
 
+"id":[1,2,3],
+
 "name":[
 "AAPL",
 "GOOGL",
@@ -55,7 +57,6 @@ assets = pd.DataFrame({
 ]
 
 })
-
 assets.to_sql(
 "assets",
 engine,
