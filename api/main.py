@@ -30,7 +30,7 @@ def dados(
         p.price
     FROM prices p
     JOIN assets a
-      ON p.asset_id = a.asset_id
+      ON p.asset_id = a.id
     WHERE a.name='{ativo}'
     """
 
