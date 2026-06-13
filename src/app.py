@@ -88,12 +88,19 @@ df["date"] = pd.to_datetime(
 )
 
 # FILTRO PERÍODO
+data_min = df["date"].min().date()
+
+data_max = df["date"].max().date()
 
 inicio = st.date_input(
 
     "Data inicial",
 
-    value=df["date"].min()
+    value=data_min,
+
+    min_value=data_min,
+
+    max_value=data_max
 
 )
 
@@ -101,10 +108,13 @@ fim = st.date_input(
 
     "Data final",
 
-    value=df["date"].max()
+    value=data_max,
+
+    min_value=inicio,
+
+    max_value=data_max
 
 )
-
 # SEGUNDA CONSULTA
 
 response = requests.get(
